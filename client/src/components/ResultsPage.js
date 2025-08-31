@@ -60,6 +60,7 @@ const ResultsPage = ({ socket }) => {
       candidate: data.candidate,
       votes: data.count,
       color: data.color,
+      image: data.image,
       percentage: 0
     }));
 
@@ -274,11 +275,28 @@ const ResultsPage = ({ socket }) => {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <div 
-                            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold mr-4"
-                            style={{ backgroundColor: candidate.color }}
-                          >
-                            #{index + 1}
+                          <div className="relative mr-4">
+                            <img
+                              src={candidate.image}
+                              alt={candidate.candidate}
+                              className="w-12 h-12 rounded-full object-cover"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                            <div 
+                              className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold hidden"
+                              style={{ backgroundColor: candidate.color }}
+                            >
+                              #{index + 1}
+                            </div>
+                            <div 
+                              className="absolute -top-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold border-2 border-white"
+                              style={{ backgroundColor: candidate.color }}
+                            >
+                              #{index + 1}
+                            </div>
                           </div>
                           <div>
                             <h3 className="font-semibold text-white">

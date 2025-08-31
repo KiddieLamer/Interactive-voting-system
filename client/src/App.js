@@ -4,7 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import io from 'socket.io-client';
 
 import AuthPage from './components/AuthPage';
-import VotingPage from './components/VotingPage';
+import VotingPageModern from './components/VotingPageModern';
 import ResultsPage from './components/ResultsPage';
 import AdminDashboard from './components/AdminDashboard';
 import ParticleBackground from './components/ParticleBackground';
@@ -62,7 +62,7 @@ function App() {
             path="/vote" 
             element={
               token ? (
-                <VotingPage 
+                <VotingPageModern 
                   user={user} 
                   token={token} 
                   socket={socket}

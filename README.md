@@ -35,7 +35,7 @@ Interactive Voting System adalah solusi modern untuk pemilihan digital. Dengan a
 ## 🚀 Teknologi
 
 ### Backend
-- **Node.js** + Express.js
+- **Node.js** + Express.js1
 - **Socket.io** untuk real-time communication
 - **JWT** untuk authentication
 - **Nodemailer** untuk email OTP

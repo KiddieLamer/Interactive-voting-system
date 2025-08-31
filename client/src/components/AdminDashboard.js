@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, Users, TrendingUp, Download, RotateCcw, 
   AlertTriangle, Activity, Server, Clock, LogOut, 
-  Eye, EyeOff, RefreshCw, Database
+  Eye, EyeOff, RefreshCw, Database, Camera, Edit3
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
+import CandidateEditModal from './CandidateEditModal';
 
 const AdminDashboard = ({ token, socket, onLogout }) => {
   const [stats, setStats] = useState({
@@ -20,9 +21,14 @@ const AdminDashboard = ({ token, socket, onLogout }) => {
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [realTimeUpdates, setRealTimeUpdates] = useState(true);
   const [systemHealth, setSystemHealth] = useState('healthy');
+  const [candidates, setCandidates] = useState([]);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => {
     fetchStats();
+    fetchCandidates();
 
     if (realTimeUpdates) {
       socket.on('vote-update', () => {
@@ -63,6 +69,15 @@ const AdminDashboard = ({ token, socket, onLogout }) => {
     }
   };
 
+  const fetchCandidates = async () => {
+    try {
+      const response = await axios.get('/api/vote/candidates');
+      setCandidates(response.data);
+    } catch (error) {
+      toast.error('Failed to fetch candidates');
+    }
+  };
+
   const handleResetVotes = async () => {
     try {
       await axios.post('/api/admin/reset-votes', {}, {
@@ -99,6 +114,43 @@ const AdminDashboard = ({ token, socket, onLogout }) => {
       toast.success('Results exported successfully');
     } catch (error) {
       toast.error('Failed to export results');
+    }
+  };
+
+  const handlePhotoUpload = async (candidateId, file) => {
+    setUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append('photo', file);
+    
+    try {
+      await axios.post(`/api/vote/candidates/${candidateId}/photo`, formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      toast.success('Photo uploaded successfully');
+      fetchCandidates();
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to upload photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleCandidateUpdate = async (candidateId, updatedData) => {
+    try {
+      await axios.put(`/api/vote/candidates/${candidateId}`, updatedData, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      toast.success('Candidate updated successfully');
+      fetchCandidates();
+      setShowEditModal(false);
+      setSelectedCandidate(null);
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to update candidate');
     }
   };
 
@@ -331,6 +383,69 @@ const AdminDashboard = ({ token, socket, onLogout }) => {
             </div>
 
             <div className="glass p-6 rounded-2xl">
+              <h2 className="text-xl font-semibold text-white mb-4">Candidate Management</h2>
+              <div className="space-y-4">
+                {candidates.map(candidate => (
+                  <div key={candidate.id} className="glass-dark p-4 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="relative">
+                          <img
+                            src={candidate.image}
+                            alt={candidate.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                          <div 
+                            className="w-12 h-12 rounded-full flex items-center justify-center text-white text-sm font-bold hidden"
+                            style={{ backgroundColor: candidate.color }}
+                          >
+                            {candidate.name.split(' ').map(n => n[0]).join('')}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-white font-medium">{candidate.name}</h4>
+                          <p className="text-white/60 text-sm">{candidate.party}</p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <label className="cursor-pointer">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              if (e.target.files[0]) {
+                                handlePhotoUpload(candidate.id, e.target.files[0]);
+                              }
+                            }}
+                          />
+                          <div className="btn-secondary text-sm px-3 py-1">
+                            <Camera className="inline w-4 h-4 mr-1" />
+                            {uploadingPhoto ? 'Uploading...' : 'Photo'}
+                          </div>
+                        </label>
+                        <button
+                          onClick={() => {
+                            setSelectedCandidate(candidate);
+                            setShowEditModal(true);
+                          }}
+                          className="btn-secondary text-sm px-3 py-1"
+                        >
+                          <Edit3 className="inline w-4 h-4 mr-1" />
+                          Edit
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="glass p-6 rounded-2xl">
               <h2 className="text-xl font-semibold text-white mb-4">System Info</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
@@ -400,6 +515,19 @@ const AdminDashboard = ({ token, socket, onLogout }) => {
                 </div>
               </motion.div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showEditModal && selectedCandidate && (
+            <CandidateEditModal
+              candidate={selectedCandidate}
+              onClose={() => {
+                setShowEditModal(false);
+                setSelectedCandidate(null);
+              }}
+              onSave={handleCandidateUpdate}
+            />
           )}
         </AnimatePresence>
       </motion.div>
